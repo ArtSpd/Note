@@ -8,9 +8,42 @@
 import SwiftUI
 
 struct ContentView: View {
+    @Environment (\.managedObjectContext) var moc
+    @FetchRequest(entity: Note.entity(), sortDescriptors: []) var notes: FetchedResults<Note>
+    
+    @State var isShoweAddView = false
+    @State var textNote = ""
+    
+    
     var body: some View {
-        Text("Hello, world!")
-            .padding()
+        NavigationView{
+                List{
+                    ForEach(notes, id:\.self){ note in
+                        NavigationLink(
+                            destination: DetailView(noter: note),
+                            label: {
+                                Text(note.textNote ?? "Enter your note")
+                                    .lineLimit(1)
+                            })
+                    }
+                    .onDelete(perform: deleteNote)
+                }
+                .navigationBarTitle(Text("Notes"))
+                .navigationBarItems(leading: EditButton() ,trailing: Button("Add"){
+                    self.isShoweAddView = true
+                })
+                .sheet(isPresented: $isShoweAddView, content: {
+                    AddView().environment(\.managedObjectContext, self.moc)
+                })
+        }
+    }
+    
+    func deleteNote(at offSets: IndexSet){
+        for offset in offSets{
+            let note = notes[offset]
+            moc.delete(note)
+        }
+        try? moc.save()
     }
 }
 
